@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 ifeq ($(origin CC), default)
 CC := /usr/bin/cc
 endif
@@ -244,20 +246,20 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(TINFOOBJDIR)" "$(GENDIR)" "$(TINFOGENDIR)" "$(OUTDIR)"
 
 $(TARGET): $(TCSH_OBJS) $(TINFO_LIB) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(TCSH_OBJS) $(TINFO_LIB) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(TCSH_OBJS) $(TINFO_LIB) $(LDLIBS)
 
 $(TINFO_LIB): $(TINFO_OBJS) | dirs
-	$(AR) rcs "$@" $(TINFO_OBJS)
-	$(RANLIB) "$@"
+	$(E) 'AR' '$(notdir $@)' && $(AR) rcs "$@" $(TINFO_OBJS)
+	$(E) 'RANLIB' '$(notdir $@)' && $(RANLIB) "$@"
 
 $(OBJDIR)/%.o: %.c $(GEN_HEADERS) $(CONFIG_HEADERS) | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -I"$(GENDIR)" -I"$(CURDIR)" -I"$(TCSHDIR)" -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -I"$(GENDIR)" -I"$(CURDIR)" -I"$(TCSHDIR)" -c "$<" -o "$@"
 
 $(TINFOOBJDIR)/%.o: %.c $(TINFO_HEADERS) $(TINFO_INTERMEDIATES) $(TINFO_CONFIG) | dirs
-	$(CC) $(TINFO_CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(TINFO_CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 
 $(GENDIR)/gethost: $(TCSHDIR)/gethost.c $(GENDIR)/sh.err.h $(CONFIG_HEADERS) | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -D_h_tc_const -I"$(GENDIR)" -I"$(CURDIR)" -I"$(TCSHDIR)" "$<" -o "$@"
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(CPPFLAGS) $(CFLAGS) -D_h_tc_const -I"$(GENDIR)" -I"$(CURDIR)" -I"$(TCSHDIR)" "$<" -o "$@"
 
 $(GENDIR)/tc.defs.c: $(GENDIR)/gethost $(TCSHDIR)/host.defs | dirs
 	{ \
@@ -411,10 +413,10 @@ $(TINFOGENDIR)/fallback.c: $(TINFODIR)/MKfallback.sh | dirs
 	mv -f "$@.tmp" "$@"
 
 $(TINFOGENDIR)/make_hash: $(TINFODIR)/make_hash.c $(TINFOGENDIR)/hashsize.h $(TINFOGENDIR)/ncurses_def.h $(TINFO_BASE_HEADERS) | dirs
-	$(CC) $(TINFO_CPPFLAGS) $(CFLAGS) -DMAIN_PROGRAM "$<" -o "$@"
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(TINFO_CPPFLAGS) $(CFLAGS) -DMAIN_PROGRAM "$<" -o "$@"
 
 $(TINFOGENDIR)/make_keys: $(TINFODIR)/make_keys.c $(TINFOGENDIR)/names.c $(TINFOGENDIR)/ncurses_def.h $(TINFO_BASE_HEADERS) | dirs
-	$(CC) $(TINFO_CPPFLAGS) $(CFLAGS) "$<" -o "$@"
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(TINFO_CPPFLAGS) $(CFLAGS) "$<" -o "$@"
 
 $(TINFOGENDIR)/comp_captab.c: $(TINFODIR)/MKcaptab.sh $(TINFODIR)/MKcaptab.awk $(NCINCDIR)/Caps $(NCINCDIR)/Caps-ncurses $(TINFOGENDIR)/make_hash | dirs
 	cd "$(TINFOGENDIR)" && env PATH="$(TINFOGENDIR):$$PATH" "$(SH)" "$(TINFODIR)/MKcaptab.sh" "$(AWK)" "$(USE_BIG_STRINGS)" \

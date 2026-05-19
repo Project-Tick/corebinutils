@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 export CCACHE_DISABLE ?= 1
 export LC_ALL := C
 export LANG := C
@@ -109,34 +111,34 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(TOOLDIR)" "$(GENDIR)" "$(OUTDIR)" "$(LIBEDIT_GENDIR)"
 
 $(TARGET): $(OBJS) $(LIBEDIT_OBJS) $(VIS_OBJS) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LIBEDIT_OBJS) $(VIS_OBJS) $(LDLIBS) $(EDITLINE_LIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LIBEDIT_OBJS) $(VIS_OBJS) $(LDLIBS) $(EDITLINE_LIBS)
 
 $(OBJDIR)/%.o: %.c $(GEN_HDRS) | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -DSHELL -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -DSHELL -c "$<" -o "$@"
 
 $(OBJDIR)/compat.o: $(CURDIR)/compat.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 
 $(OBJDIR)/mode.o: $(CURDIR)/mode.c $(CURDIR)/mode.h | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 
 $(OBJDIR)/signames.o: $(CURDIR)/signames.c $(CURDIR)/signames.h | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 
 $(OBJDIR)/libedit-%.o: $(LIBEDITDIR)/%.c $(LIBEDIT_GEN_HDRS) $(LIBEDITDIR)/histedit.h $(LIBEDITDIR)/filecomplete.h | dirs
-	$(CC) $(LIBEDIT_CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(LIBEDIT_CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 
 $(OBJDIR)/vis-%.o: $(VISDIR)/%.c $(CURDIR)/namespace.h $(VISDIR)/vis.h | dirs
-	$(CC) $(LIBEDIT_CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(LIBEDIT_CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 
 $(TOOLDIR)/mknodes: $(CURDIR)/mknodes.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) "$<" -o "$@"
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(CPPFLAGS) $(CFLAGS) "$<" -o "$@"
 
 $(TOOLDIR)/mksyntax: $(CURDIR)/mksyntax.c $(CURDIR)/parser.h | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) "$<" -o "$@"
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(CPPFLAGS) $(CFLAGS) "$<" -o "$@"
 
 $(TEST_RUNNER): $(CURDIR)/tests/run-default-sigpipe.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) "$<" -o "$@"
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(CPPFLAGS) $(CFLAGS) "$<" -o "$@"
 
 $(GENDIR)/builtins.c $(GENDIR)/builtins.h: $(CURDIR)/mkbuiltins $(CURDIR)/builtins.def | dirs
 	cd "$(GENDIR)" && sh "$(CURDIR)/mkbuiltins" "$(CURDIR)"

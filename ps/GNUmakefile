@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CPPFLAGS ?=
 CPPFLAGS += -D_GNU_SOURCE
@@ -23,10 +25,10 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(OBJDIR)/%.o: $(CURDIR)/%.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 
 test: $(TARGET)
 	CC="$(CC)" PS_BIN="$(TARGET)" sh "$(CURDIR)/tests/test.sh"

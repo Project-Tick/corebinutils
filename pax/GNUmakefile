@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CCACHE_DISABLE ?= 1
 CPPFLAGS += -include $(CURDIR)/compat.h -I$(CURDIR) -I$(CURDIR)/../cp
@@ -26,13 +28,13 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(OBJDIR)/%.o: $(CURDIR)/%.c | dirs
-	env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$<" -o "$@"
 
 $(FTS_OBJ): $(CURDIR)/../cp/fts.c $(CURDIR)/../cp/fts.h | dirs
-	env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/../cp/fts.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/../cp/fts.c" -o "$@"
 
 test: $(TARGET)
 	PAX_BIN="$(TARGET)" sh "$(CURDIR)/tests/test.sh"

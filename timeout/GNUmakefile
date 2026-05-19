@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CPPFLAGS ?=
 CPPFLAGS += -D_POSIX_C_SOURCE=200809L
@@ -22,10 +24,10 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(OBJDIR)/timeout.o: $(CURDIR)/timeout.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/timeout.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/timeout.c" -o "$@"
 
 test: $(TARGET)
 	CC="$(CC)" TIMEOUT_BIN="$(TARGET)" sh "$(CURDIR)/tests/test.sh"

@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CPPFLAGS ?=
 CPPFLAGS += -D_GNU_SOURCE
@@ -25,16 +27,16 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(PGREP): $(TARGET) | dirs
 	ln -sf pkill "$@"
 
 $(OBJDIR)/pkill.o: $(CURDIR)/pkill.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/pkill.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/pkill.c" -o "$@"
 
 $(HELPER_BIN): $(HELPER_SRC) | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) "$<" -o "$@" $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) "$<" -o "$@" $(LDLIBS)
 
 test: $(TARGET) $(PGREP) $(HELPER_BIN)
 	CC="$(CC)" PKILL_BIN="$(TARGET)" PGREP_BIN="$(PGREP)" \

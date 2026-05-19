@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CPPFLAGS ?=
 CPPFLAGS += -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700
@@ -22,10 +24,10 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(OBJDIR)/sleep.o: $(CURDIR)/sleep.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/sleep.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/sleep.c" -o "$@"
 
 test: $(TARGET)
 	CC="$(CC)" SLEEP_BIN="$(TARGET)" sh "$(CURDIR)/tests/test.sh"

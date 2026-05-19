@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CPPFLAGS ?=
 CPPFLAGS += -D_GNU_SOURCE
@@ -23,14 +25,14 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(OBJDIR)/pwd.o: $(CURDIR)/pwd.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/pwd.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/pwd.c" -o "$@"
 
 $(DEEP_HELPER): $(CURDIR)/tests/deep_helper.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/tests/deep_helper.c" -o "$(OBJDIR)/deep_helper.o"
-	$(CC) $(LDFLAGS) -o "$@" "$(OBJDIR)/deep_helper.o" $(LDLIBS)
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/tests/deep_helper.c" -o "$(OBJDIR)/deep_helper.o"
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" "$(OBJDIR)/deep_helper.o" $(LDLIBS)
 
 test: $(TARGET) $(DEEP_HELPER)
 	CC="$(CC)" PWD_BIN="$(TARGET)" DEEP_HELPER_BIN="$(DEEP_HELPER)" \
@@ -41,4 +43,3 @@ status:
 
 clean:
 	@rm -rf "$(OBJDIR)" "$(OUTDIR)"
-

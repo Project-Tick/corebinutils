@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CPPFLAGS += -D_GNU_SOURCE -I$(CURDIR)
 CFLAGS ?= -O2
@@ -20,16 +22,16 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(OBJDIR)/cp.o: $(CURDIR)/cp.c $(CURDIR)/extern.h $(CURDIR)/fts.h | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/cp.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/cp.c" -o "$@"
 
 $(OBJDIR)/utils.o: $(CURDIR)/utils.c $(CURDIR)/extern.h $(CURDIR)/fts.h | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/utils.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/utils.c" -o "$@"
 
 $(OBJDIR)/fts.o: $(CURDIR)/fts.c $(CURDIR)/fts.h | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/fts.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/fts.c" -o "$@"
 
 test: $(TARGET)
 	CP_BIN="$(TARGET)" sh "$(CURDIR)/tests/test.sh"

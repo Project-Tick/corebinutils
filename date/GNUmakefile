@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CPPFLAGS += -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700
 CFLAGS ?= -O2
@@ -20,13 +22,13 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(OBJDIR)/date.o: $(CURDIR)/date.c $(CURDIR)/vary.h | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/date.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/date.c" -o "$@"
 
 $(OBJDIR)/vary.o: $(CURDIR)/vary.c $(CURDIR)/vary.h | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/vary.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/vary.c" -o "$@"
 
 test: $(TARGET)
 	DATE_BIN="$(TARGET)" sh "$(CURDIR)/tests/test.sh"

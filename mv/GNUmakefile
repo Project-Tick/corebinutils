@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CCACHE_DISABLE ?= 1
 CPPFLAGS += -D_POSIX_C_SOURCE=200809L -D_FILE_OFFSET_BITS=64
@@ -21,10 +23,10 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	env CCACHE_DISABLE="$(CCACHE_DISABLE)" $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && env CCACHE_DISABLE="$(CCACHE_DISABLE)" $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(OBJDIR)/mv.o: $(CURDIR)/mv.c | dirs
-	env CCACHE_DISABLE="$(CCACHE_DISABLE)" $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/mv.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && env CCACHE_DISABLE="$(CCACHE_DISABLE)" $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/mv.c" -o "$@"
 
 test: $(TARGET)
 	MV_BIN="$(TARGET)" sh "$(CURDIR)/tests/test.sh"

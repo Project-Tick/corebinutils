@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CPPFLAGS ?=
 CPPFLAGS += -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE
@@ -23,16 +25,16 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	$(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(BRACKET_TARGET): $(TARGET) | dirs
 	ln -sf "test" "$@"
 
 $(OBJDIR)/test.o: $(CURDIR)/test.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/test.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/test.c" -o "$@"
 
 $(FD_HELPER): $(CURDIR)/tests/fd_helper.c | dirs
-	$(CC) $(CPPFLAGS) $(CFLAGS) "$(CURDIR)/tests/fd_helper.c" -o "$@" $(LDFLAGS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && $(CC) $(CPPFLAGS) $(CFLAGS) "$(CURDIR)/tests/fd_helper.c" -o "$@" $(LDFLAGS) $(LDLIBS)
 
 test: $(TARGET) $(BRACKET_TARGET) $(FD_HELPER)
 	TEST_BIN="$(TARGET)" BRACKET_BIN="$(BRACKET_TARGET)" \

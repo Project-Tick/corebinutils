@@ -650,6 +650,7 @@ cat >"$GNUMAKEFILE_TMP" <<'EOF_MK'
 .DEFAULT_GOAL := all
 
 -include $(CURDIR)/config.mk
+include $(CURDIR)/kbuild.mk
 
 CONFIGURE_HOST := @HOST@
 CONFIGURE_BUILD := @BUILD@
@@ -720,7 +721,14 @@ SUBMAKE_OVERRIDES = \
 	BINDIR="$(BINDIR)" \
 	DESTDIR="$(DESTDIR)" \
 	CROSS_COMPILING="$(CROSS_COMPILING)" \
-	EXEEXT="$(EXEEXT)"
+	EXEEXT="$(EXEEXT)" \
+	V="$(V)"
+
+ifeq ($(V),1)
+  SUBMAKE_FLAGS :=
+else
+  SUBMAKE_FLAGS := --no-print-directory -s
+endif
 
 .PHONY: all clean clean-% distclean maintainer-clean rebuild reconfigure \
 	check check-% test status stage install list print-config print-subdirs \
@@ -747,8 +755,8 @@ unprepare:
 	done
 
 build-%: prepare-%
-	+env CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
-		$(MAKE) -C "$*" -f GNUmakefile $(SUBMAKE_OVERRIDES) all
+	+$(E) 'MAKE' '$*' && env CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
+		$(MAKE) $(SUBMAKE_FLAGS) -C "$*" -f GNUmakefile $(SUBMAKE_OVERRIDES) all
 
 clean: $(addprefix clean-,$(SUBDIRS))
 	@rm -rf "$(MONO_BUILDDIR)" "$(MONO_OUTDIR)"
@@ -764,14 +772,14 @@ reconfigure:
 	@$(SH) "$(CURDIR)/configure"
 
 clean-%:
-	+env CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
-		$(MAKE) -C "$*" -f GNUmakefile $(SUBMAKE_OVERRIDES) clean
+	+$(E) 'CLEAN' '$*' && env CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
+		$(MAKE) $(SUBMAKE_FLAGS) -C "$*" -f GNUmakefile $(SUBMAKE_OVERRIDES) clean
 
 check: $(addprefix check-,$(SUBDIRS))
 
 check-%: prepare-%
-	+env CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
-		$(MAKE) -C "$*" -f GNUmakefile $(SUBMAKE_OVERRIDES) test
+	+$(E) 'CHECK' '$*' && env CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
+		$(MAKE) $(SUBMAKE_FLAGS) -C "$*" -f GNUmakefile $(SUBMAKE_OVERRIDES) test
 
 test: check
 

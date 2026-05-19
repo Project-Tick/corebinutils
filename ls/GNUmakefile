@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := all
 
+include $(CURDIR)/../kbuild.mk
+
 CC ?= cc
 CCACHE_DISABLE ?= 1
 CPPFLAGS += -D_GNU_SOURCE -I$(CURDIR)
@@ -21,19 +23,19 @@ dirs:
 	@mkdir -p "$(OBJDIR)" "$(OUTDIR)"
 
 $(TARGET): $(OBJS) | dirs
-	env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
+	$(E) 'LD' '$(notdir $@)' && env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(LDFLAGS) -o "$@" $(OBJS) $(LDLIBS)
 
 $(OBJDIR)/ls.o: $(CURDIR)/ls.c $(CURDIR)/ls.h $(CURDIR)/extern.h | dirs
-	env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/ls.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/ls.c" -o "$@"
 
 $(OBJDIR)/cmp.o: $(CURDIR)/cmp.c $(CURDIR)/ls.h $(CURDIR)/extern.h | dirs
-	env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/cmp.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/cmp.c" -o "$@"
 
 $(OBJDIR)/print.o: $(CURDIR)/print.c $(CURDIR)/ls.h $(CURDIR)/extern.h | dirs
-	env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/print.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/print.c" -o "$@"
 
 $(OBJDIR)/util.o: $(CURDIR)/util.c $(CURDIR)/ls.h $(CURDIR)/extern.h | dirs
-	env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/util.c" -o "$@"
+	$(E) 'CC' '$(notdir $<)' && env CCACHE_DISABLE=$(CCACHE_DISABLE) $(CC) $(CPPFLAGS) $(CFLAGS) -c "$(CURDIR)/util.c" -o "$@"
 
 test: $(TARGET)
 	LS_BIN="$(TARGET)" sh "$(CURDIR)/tests/test.sh"
