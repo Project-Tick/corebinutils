@@ -830,11 +830,30 @@ file_write(int fd, char *str, int cnt, int *rem, int *isempt, int sz,
 		}
 
 		/*
-		 * have non-zero data in this file system block, have to write
+		 * have non-zero data in this file system block, have to write.
+		 * Loop to handle short writes and EINTR so we never silently
+		 * lose data on the extracted file.
 		 */
-		if (write(fd, st, wcnt) != wcnt) {
-			syswarn(1, errno, "Failed write to file %s", name);
-			return(-1);
+		{
+			char *wp = st;
+			int wrem = wcnt;
+			while (wrem > 0) {
+				ssize_t w = write(fd, wp, (size_t)wrem);
+				if (w < 0) {
+					if (errno == EINTR)
+						continue;
+					syswarn(1, errno,
+					    "Failed write to file %s", name);
+					return(-1);
+				}
+				if (w == 0) {
+					syswarn(1, EIO,
+					    "Failed write to file %s", name);
+					return(-1);
+				}
+				wp += w;
+				wrem -= (int)w;
+			}
 		}
 		st += wcnt;
 	}

@@ -542,6 +542,10 @@ get_num(const char *val)
 		case 'X':
 		case 'x':
 			mult = get_num(expr + 1);
+			if (mult == 0) {
+				num = 0;
+				break;
+			}
 			prevnum = num;
 			num *= mult;
 			if (num / mult == prevnum)
@@ -591,6 +595,10 @@ get_off_t(const char *val)
 		case 'X':
 		case 'x':
 			mult = (intmax_t)get_off_t(expr + 1);
+			if (mult == 0) {
+				num = 0;
+				break;
+			}
 			prevnum = num;
 			num *= mult;
 			if ((prevnum > 0) == (num > 0) && num / mult == prevnum)

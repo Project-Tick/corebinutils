@@ -105,14 +105,23 @@ copy_fallback(int from_fd, int to_fd)
 	rcount = read(from_fd, buf, bufsize);
 	if (rcount <= 0)
 		return (rcount);
-	for (bufp = buf, wresid = rcount; ; bufp += wcount, wresid -= wcount) {
+	for (bufp = buf, wresid = rcount; wresid > 0; bufp += wcount, wresid -= wcount) {
 		wcount = write(to_fd, bufp, wresid);
-		if (wcount <= 0)
-			break;
-		if (wcount >= wresid)
-			break;
+		if (wcount < 0) {
+			if (errno == EINTR) {
+				wcount = 0;
+				continue;
+			}
+			return (wcount);
+		}
+		if (wcount == 0) {
+			/* short write of zero with no error: treat as I/O error
+			 * rather than silently dropping data. */
+			errno = EIO;
+			return (-1);
+		}
 	}
-	return (wcount < 0 ? wcount : rcount);
+	return (rcount);
 }
 
 int

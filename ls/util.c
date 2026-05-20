@@ -591,6 +591,11 @@ lookup_user(uid_t uid)
 		len = 1024;
 	buf = xmalloc((size_t)len);
 	while ((error = getpwuid_r(uid, &pwd, buf, (size_t)len, &result)) == ERANGE) {
+		if (len > (1L << 20)) {
+			/* Hard cap to avoid runaway growth on a broken NSS. */
+			free(buf);
+			return (format_uintmax(uid, false));
+		}
 		len *= 2;
 		buf = xreallocarray(buf, (size_t)len, 1);
 	}
@@ -618,6 +623,10 @@ lookup_group(gid_t gid)
 		len = 1024;
 	buf = xmalloc((size_t)len);
 	while ((error = getgrgid_r(gid, &grp, buf, (size_t)len, &result)) == ERANGE) {
+		if (len > (1L << 20)) {
+			free(buf);
+			return (format_uintmax(gid, false));
+		}
 		len *= 2;
 		buf = xreallocarray(buf, (size_t)len, 1);
 	}
@@ -668,6 +677,12 @@ ensure_link_target(struct entry *entry)
 			buf[len] = '\0';
 			entry->link_target = buf;
 			return (0);
+		}
+		if (cap > (size_t)(1U << 20)) {
+			/* Symlink target absurdly long; refuse to keep growing. */
+			free(buf);
+			errno = ENAMETOOLONG;
+			return (-1);
 		}
 		cap *= 2;
 		buf = xreallocarray(buf, cap, 1);

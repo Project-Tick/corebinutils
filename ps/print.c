@@ -140,12 +140,16 @@ command(KINFO *k, VARENT *ve)
 	}
 
 	char *vis_args = simple_strvis(k->ki_args);
-	if (!vis_args) return strdup("-");
+	if (!vis_args) {
+		char *fallback = strdup("-");
+		if (!fallback) err(1, "strdup");
+		return fallback;
+	}
 
 	if (STAILQ_NEXT(ve, next_ve) == NULL) {
 		/* last field */
 		char *vis_env = k->ki_env ? simple_strvis(k->ki_env) : NULL;
-		asprintf(&str, "%s%s%s%s",
+		SAFE_ASPRINTF(&str, "%s%s%s%s",
 		    k->ki_d.prefix ? k->ki_d.prefix : "",
 		    vis_env ? vis_env : "",
 		    vis_env ? " " : "",
@@ -165,11 +169,12 @@ ucomm(KINFO *k, VARENT *ve)
 {
 	char *str;
 	if (STAILQ_NEXT(ve, next_ve) == NULL) {
-		asprintf(&str, "%s%s",
+		SAFE_ASPRINTF(&str, "%s%s",
 		    k->ki_d.prefix ? k->ki_d.prefix : "",
 		    k->ki_p->ki_comm);
 	} else {
 		str = strdup(k->ki_p->ki_comm);
+		if (!str) err(1, "strdup");
 	}
 	return (str);
 }
@@ -254,10 +259,12 @@ char *
 tdev(KINFO *k, VARENT *ve __unused)
 {
 	char *str;
-	if (k->ki_p->ki_tdev == (dev_t)-1)
+	if (k->ki_p->ki_tdev == (dev_t)-1) {
 		str = strdup("-");
-	else
-		asprintf(&str, "%#jx", (uintmax_t)k->ki_p->ki_tdev);
+		if (!str) err(1, "strdup");
+	} else {
+		SAFE_ASPRINTF(&str, "%#jx", (uintmax_t)k->ki_p->ki_tdev);
+	}
 	return str;
 }
 
@@ -265,13 +272,17 @@ char *
 tname(KINFO *k, VARENT *ve __unused)
 {
 	char *name = devname(k->ki_p->ki_tdev, S_IFCHR);
-	if (!name) return strdup("- ");
-	
+	if (!name) {
+		char *fallback = strdup("- ");
+		if (!fallback) err(1, "strdup");
+		return fallback;
+	}
+
 	char *str;
 	if (strncmp(name, "tty", 3) == 0) name += 3;
 	if (strncmp(name, "pts/", 4) == 0) name += 4;
-	
-	asprintf(&str, "%s ", name);
+
+	SAFE_ASPRINTF(&str, "%s ", name);
 	return str;
 }
 
@@ -342,7 +353,7 @@ char *
 vsize(KINFO *k, VARENT *ve __unused)
 {
 	char *str;
-	asprintf(&str, "%lu", (unsigned long)(k->ki_p->ki_size / 1024));
+	SAFE_ASPRINTF(&str, "%lu", (unsigned long)(k->ki_p->ki_size / 1024));
 	return str;
 }
 
@@ -351,7 +362,7 @@ printtime(KINFO *k, VARENT *ve __unused, long secs, long psecs)
 {
 	char *str;
 	if (!k->ki_valid) { secs = 0; psecs = 0; }
-	asprintf(&str, "%ld:%02ld.%02ld", secs / 60, secs % 60, psecs / 10000);
+	SAFE_ASPRINTF(&str, "%ld:%02ld.%02ld", secs / 60, secs % 60, psecs / 10000);
 	return str;
 }
 
@@ -367,7 +378,7 @@ char *
 cpunum(KINFO *k, VARENT *ve __unused)
 {
 	char *str;
-	asprintf(&str, "%d", k->ki_p->ki_lastcpu);
+	SAFE_ASPRINTF(&str, "%d", k->ki_p->ki_lastcpu);
 	return str;
 }
 
@@ -393,9 +404,9 @@ elapsed(KINFO *k, VARENT *ve __unused)
 	int mins = val / 60;
 	int secs = val % 60;
 	char *str;
-	if (days != 0) asprintf(&str, "%3d-%02d:%02d:%02d", days, hours, mins, secs);
-	else if (hours != 0) asprintf(&str, "%02d:%02d:%02d", hours, mins, secs);
-	else asprintf(&str, "%02d:%02d", mins, secs);
+	if (days != 0) SAFE_ASPRINTF(&str, "%3d-%02d:%02d:%02d", days, hours, mins, secs);
+	else if (hours != 0) SAFE_ASPRINTF(&str, "%02d:%02d:%02d", hours, mins, secs);
+	else SAFE_ASPRINTF(&str, "%02d:%02d", mins, secs);
 	return str;
 }
 
@@ -404,7 +415,7 @@ elapseds(KINFO *k, VARENT *ve __unused)
 {
 	if (!k->ki_valid) return NULL;
 	char *str;
-	asprintf(&str, "%jd", (intmax_t)(now - k->ki_p->ki_start.tv_sec));
+	SAFE_ASPRINTF(&str, "%jd", (intmax_t)(now - k->ki_p->ki_start.tv_sec));
 	return str;
 }
 
@@ -431,7 +442,7 @@ pmem(KINFO *k, VARENT *ve __unused)
 	if (mem_total_kb == 0) donlist();
 	char *str;
 	double pct = (100.0 * k->ki_p->ki_rssize) / mem_total_kb;
-	asprintf(&str, "%.1f", pct);
+	SAFE_ASPRINTF(&str, "%.1f", pct);
 	return str;
 }
 
@@ -464,21 +475,24 @@ kvar(KINFO *k, VARENT *ve)
 	char fmt[32];
 	snprintf(fmt, sizeof(fmt), "%%%s", v->fmt ? v->fmt : "s");
 	switch (v->type) {
-	case INT: asprintf(&str, fmt, *(int *)bp); break;
-	case UINT: asprintf(&str, fmt, *(unsigned int *)bp); break;
-	case LONG: asprintf(&str, fmt, *(long *)bp); break;
-	case ULONG: asprintf(&str, fmt, *(unsigned long *)bp); break;
-	case SHORT: asprintf(&str, fmt, *(short *)bp); break;
-	case USHORT: asprintf(&str, fmt, *(unsigned short *)bp); break;
-	case CHAR: asprintf(&str, fmt, *(char *)bp); break;
-	case UCHAR: asprintf(&str, fmt, *(unsigned char *)bp); break;
+	case INT: SAFE_ASPRINTF(&str, fmt, *(int *)bp); break;
+	case UINT: SAFE_ASPRINTF(&str, fmt, *(unsigned int *)bp); break;
+	case LONG: SAFE_ASPRINTF(&str, fmt, *(long *)bp); break;
+	case ULONG: SAFE_ASPRINTF(&str, fmt, *(unsigned long *)bp); break;
+	case SHORT: SAFE_ASPRINTF(&str, fmt, *(short *)bp); break;
+	case USHORT: SAFE_ASPRINTF(&str, fmt, *(unsigned short *)bp); break;
+	case CHAR: SAFE_ASPRINTF(&str, fmt, *(char *)bp); break;
+	case UCHAR: SAFE_ASPRINTF(&str, fmt, *(unsigned char *)bp); break;
 	case PGTOK:
 		{
 			unsigned long val = *(unsigned long *)bp;
-			asprintf(&str, fmt, (unsigned long)(val * getpagesize() / 1024));
+			SAFE_ASPRINTF(&str, fmt, (unsigned long)(val * getpagesize() / 1024));
 			break;
 		}
-	default: asprintf(&str, "?"); break;
+	default:
+		str = strdup("?");
+		if (!str) err(1, "strdup");
+		break;
 	}
 	return str;
 }

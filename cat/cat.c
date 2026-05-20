@@ -481,10 +481,20 @@ raw_cat(int rfd)
 		if ((buf = malloc(bsize)) == NULL)
 			err(1, "malloc() failure of IO buffer");
 	}
-	while ((nr = read(rfd, buf, bsize)) > 0)
-		for (off = 0; nr; nr -= nw, off += nw)
-			if ((nw = write(wfd, buf + off, (size_t)nr)) < 0)
+	while ((nr = read(rfd, buf, bsize)) > 0) {
+		for (off = 0; nr; nr -= nw, off += nw) {
+			nw = write(wfd, buf + off, (size_t)nr);
+			if (nw < 0) {
+				if (errno == EINTR) {
+					nw = 0;
+					continue;
+				}
 				err(1, "stdout");
+			}
+			if (nw == 0)
+				errx(1, "stdout: zero-length write");
+		}
+	}
 	if (nr < 0) {
 		warn("%s", filename);
 		rval = 1;

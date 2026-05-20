@@ -547,6 +547,8 @@ str_sec(const char *p, time_t *tval)
 	}
 
 	lt = localtime(tval);
+	if (lt == NULL)
+		return(-1);
 
 	if (dot != NULL) {			/* .SS */
 		if (strlen(++dot) != 2)

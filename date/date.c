@@ -208,6 +208,8 @@ strbuf_reserve(struct strbuf *buf, size_t extra)
 	size_t newcap;
 	char *newdata;
 
+	if (extra > SIZE_MAX - buf->len - 1)
+		die("buffer too large");
 	needed = buf->len + extra + 1;
 	if (needed <= buf->cap)
 		return;

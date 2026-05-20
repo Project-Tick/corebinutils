@@ -108,6 +108,8 @@ static void usage(void) __attribute__((__noreturn__));
 static int scan_processes(KINFO **kinfop, int *nentries);
 static double get_system_uptime(void);
 static char *kludge_oldps_options(const char *, char *, const char *);
+static long long safe_strtoll(const char *s);
+static unsigned long safe_strtoul(const char *s);
 
 static const char dfmt[] = "pid,tt,state,time,command";
 static const char jfmt[] = "user,pid,ppid,pgid,sid,jobc,state,tt,time,command";
@@ -133,8 +135,13 @@ main(int argc, char *argv[])
 	clk_tck = sysconf(_SC_CLK_TCK);
 	system_uptime = get_system_uptime();
 
-	if ((cols = getenv("COLUMNS")) != NULL && *cols != '\0')
-		termwidth = atoi(cols);
+	if ((cols = getenv("COLUMNS")) != NULL && *cols != '\0') {
+		long long w = safe_strtoll(cols);
+		if (w > 0 && w < (long long)INT_MAX)
+			termwidth = (int)w;
+		else
+			termwidth = 79;
+	}
 	else if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0) {
 		termwidth = ws.ws_col - 1;
 		if (ws.ws_row > 0) hlines = ws.ws_row - 1;
@@ -218,7 +225,9 @@ main(int argc, char *argv[])
 	if (all) nselectors = 0;
 	else if (nselectors == 0) {
 		uid_t me = geteuid();
-		uidlist.l = realloc(uidlist.l, sizeof(uid_t));
+		void *nl = realloc(uidlist.l, sizeof(uid_t));
+		if (nl == NULL) err(1, "realloc");
+		uidlist.l = nl;
 		((uid_t*)uidlist.l)[0] = me;
 		uidlist.count = 1;
 		nselectors = 1;
@@ -279,7 +288,10 @@ main(int argc, char *argv[])
 		int linelen = 0;
 		STAILQ_FOREACH(vent, &varlist, next_ve) {
 			char *str = vent->var->oproc(&kept[i], vent);
-			if (!str) str = strdup("-");
+			if (!str) {
+				str = strdup("-");
+				if (!str) err(1, "strdup");
+			}
 			int width = vent->width;
 			if (STAILQ_NEXT(vent, next_ve) == NULL) {
 				if (termwidth > 0 && linelen + (int)strlen(str) > termwidth) {
@@ -329,8 +341,17 @@ scan_vars(void)
 static int
 addelem_pid(struct listinfo *inf, const char *arg)
 {
-	long v = strtol(arg, NULL, 10);
-	inf->l = realloc(inf->l, (inf->count + 1) * sizeof(pid_t));
+	char *end;
+	long v;
+	void *nl;
+
+	errno = 0;
+	v = strtol(arg, &end, 10);
+	if (end == arg || *end != '\0' || errno != 0 || v <= 0)
+		return -1;
+	nl = realloc(inf->l, (inf->count + 1) * sizeof(pid_t));
+	if (nl == NULL) err(1, "realloc");
+	inf->l = nl;
 	((pid_t*)inf->l)[inf->count++] = (pid_t)v;
 	return 0;
 }
@@ -339,8 +360,23 @@ static int
 addelem_uid(struct listinfo *inf, const char *arg)
 {
 	struct passwd *pw = getpwnam(arg);
-	uid_t uid = pw ? pw->pw_uid : (uid_t)atoi(arg);
-	inf->l = realloc(inf->l, (inf->count + 1) * sizeof(uid_t));
+	uid_t uid;
+	void *nl;
+
+	if (pw != NULL) {
+		uid = pw->pw_uid;
+	} else {
+		char *end;
+		unsigned long v;
+		errno = 0;
+		v = strtoul(arg, &end, 10);
+		if (end == arg || *end != '\0' || errno != 0)
+			return -1;
+		uid = (uid_t)v;
+	}
+	nl = realloc(inf->l, (inf->count + 1) * sizeof(uid_t));
+	if (nl == NULL) err(1, "realloc");
+	inf->l = nl;
 	((uid_t*)inf->l)[inf->count++] = uid;
 	return 0;
 }
@@ -349,8 +385,23 @@ static int
 addelem_gid(struct listinfo *inf, const char *arg)
 {
 	struct group *gr = getgrnam(arg);
-	gid_t gid = gr ? gr->gr_gid : (gid_t)atoi(arg);
-	inf->l = realloc(inf->l, (inf->count + 1) * sizeof(gid_t));
+	gid_t gid;
+	void *nl;
+
+	if (gr != NULL) {
+		gid = gr->gr_gid;
+	} else {
+		char *end;
+		unsigned long v;
+		errno = 0;
+		v = strtoul(arg, &end, 10);
+		if (end == arg || *end != '\0' || errno != 0)
+			return -1;
+		gid = (gid_t)v;
+	}
+	nl = realloc(inf->l, (inf->count + 1) * sizeof(gid_t));
+	if (nl == NULL) err(1, "realloc");
+	inf->l = nl;
 	((gid_t*)inf->l)[inf->count++] = gid;
 	return 0;
 }
@@ -584,26 +635,51 @@ scan_processes(KINFO **kinfop, int *nentries)
 	struct dirent *ent;
 	int count = 0, cap = 128;
 	KINFO *k = malloc(cap * sizeof(KINFO));
+	if (k == NULL) {
+		closedir(dir);
+		err(1, "malloc");
+	}
 
 	while ((ent = readdir(dir))) {
 		if (!isdigit(ent->d_name[0])) continue;
-		pid_t pid = atoi(ent->d_name);
+		pid_t pid = (pid_t)safe_strtoll(ent->d_name);
+		if (pid <= 0) continue;
 		struct kinfo_proc *kp = calloc(1, sizeof(struct kinfo_proc));
+		if (kp == NULL) {
+			closedir(dir);
+			free(k);
+			err(1, "calloc");
+		}
 		kp->ki_pid = pid;
 		if (read_proc_stat(pid, kp) < 0 || read_proc_status(pid, kp) < 0) {
 			free(kp);
 			continue;
 		}
-		// printf("Scanned pid %d: comm=%s ppid=%d\n", kp->ki_pid, kp->ki_comm, kp->ki_ppid);
-		
+
 		if (count >= cap) {
+			KINFO *nk;
 			cap *= 2;
-			k = realloc(k, cap * sizeof(KINFO));
+			nk = realloc(k, cap * sizeof(KINFO));
+			if (nk == NULL) {
+				closedir(dir);
+				free(kp);
+				free(k);
+				err(1, "realloc");
+			}
+			k = nk;
 		}
 		k[count].ki_p = kp;
 		k[count].ki_valid = 1;
 		k[count].ki_args = needcomm ? read_proc_cmdline(pid) : NULL;
-		if (!k[count].ki_args) k[count].ki_args = strdup(kp->ki_comm);
+		if (!k[count].ki_args) {
+			k[count].ki_args = strdup(kp->ki_comm);
+			if (k[count].ki_args == NULL) {
+				closedir(dir);
+				free(kp);
+				free(k);
+				err(1, "strdup");
+			}
+		}
 		k[count].ki_env = (needenv) ? read_proc_environ(pid) : NULL;
 		k[count].ki_pcpu = 0; /* filled later if needed */
 		k[count].ki_memsize = kp->ki_rssize * getpagesize();
@@ -630,6 +706,8 @@ kludge_oldps_options(const char *optstring, char *arg, const char *nextarg)
 	/* Simple version of BSD kludge: if first arg doesn't start with '-', prepend one */
 	if (arg && arg[0] != '-') {
 		char *newarg = malloc(strlen(arg) + 2);
+		if (newarg == NULL)
+			err(1, "malloc");
 		newarg[0] = '-';
 		strcpy(newarg + 1, arg);
 		return newarg;

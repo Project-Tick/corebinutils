@@ -339,8 +339,12 @@ ar_close(void)
 
 	/* Do not exit before child to ensure data integrity */
 	if (zpid > 0) {
-		waitpid(zpid, &status, 0);
-		ar_check_gzip_status(status);
+		int wr;
+		do {
+			wr = waitpid(zpid, &status, 0);
+		} while (wr < 0 && errno == EINTR);
+		if (wr > 0)
+			ar_check_gzip_status(status);
 		zpid = -1;
 	}
 

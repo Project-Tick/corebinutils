@@ -215,6 +215,8 @@ parsefmt(const char *p, struct velisthead *const var_list, const int user)
 	char *copy = strdup(p);
 	char *cp = copy;
 	char *token;
+
+	if (copy == NULL) err(1, "strdup");
 	VAR *v, key;
 	struct varent *vent;
 
@@ -233,7 +235,12 @@ parsefmt(const char *p, struct velisthead *const var_list, const int user)
 		resolve_alias(v);
 		vent = malloc(sizeof(struct varent));
 		if (!vent) err(1, "malloc");
-		vent->header = hdr ? strdup(hdr) : v->header;
+		if (hdr) {
+			vent->header = strdup(hdr);
+			if (!vent->header) err(1, "strdup");
+		} else {
+			vent->header = v->header;
+		}
 		vent->width = strlen(vent->header);
 		vent->var = v;
 		vent->flags = user ? VE_KEEP : 0;

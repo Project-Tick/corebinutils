@@ -1365,7 +1365,8 @@ handle_hup(int signo)
 	sigflags &= ~(1 << (signo - 1));
 	if (addr_last && write_file(ed_hup, "w", 1, addr_last) < 0 &&
 	    (s = getenv("HOME")) != NULL &&
-	    (n = strlen(s)) + 8 <= PATH_MAX &&	/* "ed.hup" + '/' */
+	    (n = strlen(s)) > 0 &&
+	    n + 8 <= PATH_MAX &&	/* "ed.hup" + '/' */
 	    (hup = (char *) malloc(n + 10)) != NULL) {
 		strcpy(hup, s);
 		if (hup[n - 1] != '/')
